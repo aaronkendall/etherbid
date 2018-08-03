@@ -64,5 +64,11 @@ contract EtherBid {
   function endAuction() private {
     isActive = false;
     currentHighestBidder.transfer(prize);
+
+    uint256 gasCost = 21000 * 20 gwei; //transaction gas * 20 gwei cast cost
+
+    if (this.balance > gasCost) {
+      contractOwner.transfer(this.balance - gasCost);
+    }
   }
 }
