@@ -45,6 +45,15 @@ contract EtherBid {
     }
   }
 
+  function checkIfAuctionHasEnded() external returns (bool) {
+    if (now > endTime) {
+      endAuction();
+      return true;
+    }
+
+    return false;
+  }
+
   function startAuction(uint256 durationInDays) external payable onlyOwner() {
     prize = msg.value;
     startTime = now;
