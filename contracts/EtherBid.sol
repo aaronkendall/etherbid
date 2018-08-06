@@ -9,6 +9,7 @@ contract EtherBid {
   uint256 public startTime; // start time recorded when `startAuction` function is called
   uint256 public endTime; // end time calculated by duration in days passed to `startAuction` call
   bool public isActive; // bool toggle here to make sure we don't get stuck in an endless auction ending scenario - it must run only once!
+  bool public isWithdrawable; // bool to toggle whether or not owner can withdraw from contract
 
   constructor() {
     contractOwner = msg.sender;
@@ -16,11 +17,6 @@ contract EtherBid {
 
   modifier auctionIsActive() {
     require(isActive);
-
-    if (now > endTime) {
-      endAuction();
-      revert();
-    }
     _;
   }
 
@@ -29,11 +25,25 @@ contract EtherBid {
     _;
   }
 
+  modifier withdrawable() {
+    require(isWithdrawable);
+    _;
+  }
+
   function getHighestBidForAddress(address queryAddress) external constant returns (uint256) {
     return addressToHighestBid[queryAddress];
   }
 
+  function auctionTimeUp() view returns (bool) {
+    return now > endTime;
+  }
+
   function placeBid() external payable auctionIsActive() {
+    if (auctionTimeUp()) {
+      endAuction();
+      revert();
+    }
+
     address bidder = msg.sender;
     uint256 bid = msg.value;
 
@@ -46,7 +56,7 @@ contract EtherBid {
   }
 
   function checkIfAuctionHasEnded() external returns (bool) {
-    if (now > endTime) {
+    if (auctionTimeUp()) {
       endAuction();
       return true;
     }
@@ -59,16 +69,17 @@ contract EtherBid {
     startTime = now;
     endTime = startTime + (durationInDays * 24 * 60 * 60);
     isActive = true;
+    isWithdrawable = false;
   }
 
   function endAuction() private {
     isActive = false;
+    isWithdrawable = true;
     currentHighestBidder.transfer(prize);
+  }
 
-    uint256 gasCost = 21000 * 20 gwei; //transaction gas * 20 gwei cast cost
-
-    if (this.balance > gasCost) {
-      contractOwner.transfer(this.balance - gasCost);
-    }
+  function withdraw(address recipient) external onlyOwner() withdrawable() {
+    address etherBidContract = address(this);
+    recipient.transfer(etherBidContract.balance);
   }
 }
