@@ -1,18 +1,48 @@
-/*
- * NB: since truffle-hdwallet-provider 0.0.5 you must wrap HDWallet providers in a 
- * function when declaring them. Failure to do so will cause commands to hang. ex:
- * ```
- * mainnet: {
- *     provider: function() { 
- *       return new HDWalletProvider(mnemonic, 'https://mainnet.infura.io/<infura-key>') 
- *     },
- *     network_id: '1',
- *     gas: 4500000,
- *     gasPrice: 10000000000,
- *   },
- */
+require('dotenv').config()
+const _ = require('lodash')
+const WalletProvider = require('truffle-wallet-provider')
+const Wallet = require('ethereumjs-wallet')
+
+// put "mainnet back in when ready to deploy there"
+const networks = ['rinkeby']
+
+const infuraNetworks = _.fromPairs(_.compact(networks.map((network) => {
+  const envVarName = `${network.toUpperCase()}_PRIVATE_KEY`
+  const privateKeyHex = process.env[envVarName]
+
+  if (privateKeyHex) {
+    const privateKey = Buffer.from(process.env[envVarName], 'hex')
+    const wallet = Wallet.fromPrivateKey(privateKey);
+    const provider = new WalletProvider(wallet, `https://${network}.infura.io/`)
+
+    return [
+      network,
+      {
+        host: 'localhost',
+        port: 8545,
+        network_id: '*',
+        gas: 7000000,
+        provider,
+      }
+    ]
+  }
+})))
 
 module.exports = {
-  // See <http://truffleframework.com/docs/advanced/configuration>
-  // to customize your Truffle configuration!
-};
+  networks: {
+    development: {
+      host: 'localhost',
+      port: 8545,
+      network_id: '*',
+      gasPrice: 1,
+      gas: 7000000
+    },
+    ...infuraNetworks,
+  },
+  solc: {
+    optimizer: {
+      enabled: true,
+      runs: 200
+    }
+  }
+}

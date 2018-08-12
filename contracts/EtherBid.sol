@@ -2,10 +2,10 @@ pragma solidity 0.4.24;
 
 contract EtherBid {
   address public contractOwner; // owner of the contract
-  uint256 public prize; // amount of gwei on offer to winner
+  uint256 public prize; // amount of wei on offer to winner
   uint256 public highestBid; // highest bid in wei
   address public currentHighestBidder; // address of current highest bidder
-  mapping(address => uint256) public addressToHighestBid; // track current highest bids sent by addresses
+  mapping(address => string) public addressToHighestBidName; // track current highest bids sent by addresses
   uint256 public startTime; // start time recorded when `startAuction` function is called
   uint256 public endTime; // end time calculated by duration in days passed to `startAuction` call
   bool public isActive; // bool toggle here to make sure we don't get stuck in an endless auction ending scenario - it must run only once!
@@ -30,33 +30,44 @@ contract EtherBid {
     _;
   }
 
-  function getHighestBidForAddress(address queryAddress) external constant returns (uint256) {
-    return addressToHighestBid[queryAddress];
+  function getAuctionInfo() external constant returns
+  (uint256 _highestBid, string _highestBidder, uint256 _endTime, uint256 _prize) {
+    string memory highestBidder = addressToHighestBidName[currentHighestBidder];
+
+    return (
+      highestBid,
+      highestBidder,
+      endTime,
+      prize
+    );
   }
 
-  function auctionTimeUp() view returns (bool) {
+  function isAuctionTimeUp() view returns (bool) {
     return now > endTime;
   }
 
-  function placeBid() external payable auctionIsActive() {
-    if (auctionTimeUp()) {
+  function placeBid(string bidderName) external payable auctionIsActive() returns (bool) {
+    if (isAuctionTimeUp()) {
       endAuction();
       revert();
     }
 
-    address bidder = msg.sender;
+    address bidderAddress = msg.sender;
     uint256 bid = msg.value;
 
-    addressToHighestBid[bidder] = bid;
-
     if (bid > highestBid) {
-      currentHighestBidder = bidder;
+      currentHighestBidder = bidderAddress;
       highestBid = bid;
+      addressToHighestBidName[bidderAddress] = bidderName;
+
+      return true;
     }
+
+    return false;
   }
 
   function checkIfAuctionHasEnded() external returns (bool) {
-    if (auctionTimeUp()) {
+    if (isAuctionTimeUp()) {
       endAuction();
       return true;
     }
