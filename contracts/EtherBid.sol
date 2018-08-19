@@ -46,7 +46,7 @@ contract EtherBid {
     return now > endTime;
   }
 
-  function placeBid(string bidderName) external payable auctionIsActive() returns (bool) {
+  function placeBid(string bidderName) external payable auctionIsActive() {
     if (isAuctionTimeUp()) {
       endAuction();
       revert();
@@ -59,11 +59,7 @@ contract EtherBid {
       currentHighestBidder = bidderAddress;
       highestBid = bid;
       addressToHighestBidName[bidderAddress] = bidderName;
-
-      return true;
     }
-
-    return false;
   }
 
   function checkIfAuctionHasEnded() external returns (bool) {
@@ -81,6 +77,8 @@ contract EtherBid {
     endTime = startTime + (durationInDays * 24 * 60 * 60);
     isActive = true;
     isWithdrawable = false;
+    currentHighestBidder = 0x0;
+    addressToHighestBidName[currentHighestBidder] = '';
   }
 
   function endAuction() private {
