@@ -49,7 +49,8 @@ contract EtherBid {
   function placeBid(string bidderName) external payable auctionIsActive() {
     if (isAuctionTimeUp()) {
       endAuction();
-      revert();
+      msg.sender.transfer(msg.value);
+      return;
     }
 
     address bidderAddress = msg.sender;
